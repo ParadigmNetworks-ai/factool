@@ -51,17 +51,18 @@ class knowledge_qa_pipeline(pipeline):
         ]
         return await self.chat.async_run(messages_list, List)
 
-    async def _verification(self, claims, evidences):
+    async def _verification(self, prompt, claims, evidences):
         messages_list = [
             [
                 {"role": "system", "content": self.verification_prompt['system']},
-                {"role": "user", "content": self.verification_prompt['user'].format(claim=claim['claim'], evidence=str(evidence))},
+                {"role": "user", "content": self.verification_prompt['user'].format(prompt=prompt, claim=claim['claim'], evidence=str(evidence))},
             ]
             for claim, evidence in zip(claims, evidences)
         ]
+        print(messages_list[0][1]["content"])
         return await self.chat.async_run(messages_list, dict)
     
-    async def run_with_tool_live(self, responses):
+    async def run_with_tool_live(self, prompts, responses):
         claims_in_responses = await self._claim_extraction(responses)
         queries_in_responses = []
         evidences_in_responses = []
@@ -75,7 +76,7 @@ class knowledge_qa_pipeline(pipeline):
             evidences_in_responses.append(evidences)
             sources = [[output['source'] for output in search_outputs_for_claim] for search_outputs_for_claim in search_outputs_for_claims]
             sources_in_responses.append(sources)
-            verifications = await self._verification(claims_in_response, evidences)
+            verifications = await self._verification(prompts[0], claims_in_response, evidences)
             verifications_in_responses.append(verifications)
 
         return claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses
@@ -103,7 +104,7 @@ class knowledge_qa_pipeline(pipeline):
             batch_start = i * batch_size
             batch_end = min((i + 1) * batch_size, len(responses))
 
-            claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses = await self.run_with_tool_live(responses[batch_start:batch_end])
+            claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses = await self.run_with_tool_live(prompts[batch_start:batch_end], responses[batch_start:batch_end])
 
             for j, (claims_in_response, queries_in_response, evidences_in_response, sources_in_response, verifications_in_response) in enumerate(zip(claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses)):
                 index = batch_start + j

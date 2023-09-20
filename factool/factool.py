@@ -116,7 +116,10 @@ class Factool():
             elif output['category'] == 'scientific':
                 total_claim_factuality += sum(claim['factuality'] == True for claim in output['claim_level_factuality'])
 
-        avg_claim_level_factuality = total_claim_factuality / num_claims
+        if num_claims > 0:
+            avg_claim_level_factuality = total_claim_factuality / num_claims
+        else:
+            avg_claim_level_factuality = 0
 
         return {"average_claim_level_factuality": avg_claim_level_factuality, "average_response_level_factuality": avg_response_level_factuality, "detailed_information": outputs}
 

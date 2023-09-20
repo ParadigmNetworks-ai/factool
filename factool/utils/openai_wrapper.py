@@ -74,6 +74,7 @@ class OpenAIChat():
 
     def _type_check(self, output, expected_type):
         try:
+            output = output.replace('null', '"None"')
             output_eval = ast.literal_eval(output)
             if not isinstance(output_eval, expected_type):
                 return None
@@ -171,7 +172,7 @@ class OpenAIChat():
         return responses
 
 class OpenAIEmbed():
-    def __init__():
+    def __init__(self):
         openai.api_key = os.environ.get("OPENAI_API_KEY", None)
         assert openai.api_key is not None, "Please set the OPENAI_API_KEY environment variable."
         assert openai.api_key != '', "Please set the OPENAI_API_KEY environment variable."

@@ -50,36 +50,39 @@ class GoogleSerperAPIWrapper():
         if results.get("answerBox"):
             answer_box = results.get("answerBox", {})
             if answer_box.get("answer"):
-                element = {"content":answer_box.get("answer"),"source":"None"}
-                return [element]
+                element = {"content":answer_box.get("answer"), "source": answer_box.get("link", "None")}
+                if element.get("source") != "None" or (not results.get("knowledgeGraph") and not results.get("organic")):
+                    return [element]
             elif answer_box.get("snippet"):
-                element = {"content":answer_box.get("snippet").replace("\n", " "),"source":"None"}
-                return [element]
+                element = {"content":answer_box.get("snippet").replace("\n", " "),"source": answer_box.get("link", "None")}
+                if element.get("source") != "None" or (not results.get("knowledgeGraph") and not results.get("organic")):
+                    return [element]
             elif answer_box.get("snippetHighlighted"):
-                element = {"content":answer_box.get("snippetHighlighted"),"source":"None"}
-                return [element]
+                element = {"content":answer_box.get("snippetHighlighted"),"source": answer_box.get("link", "None")}
+                if element.get("source") != "None" or (not results.get("knowledgeGraph") and not results.get("organic")):
+                    return [element]
             
         if results.get("knowledgeGraph"):
             kg = results.get("knowledgeGraph", {})
             title = kg.get("title")
             entity_type = kg.get("type")
             if entity_type:
-                element = {"content":f"{title}: {entity_type}","source":"None"}
+                element = {"content":f"{title}: {entity_type}","source": kg.get("descriptionLink", "None")}
                 snippets.append(element)
             description = kg.get("description")
             if description:
-                element = {"content":description,"source":"None"}
+                element = {"content":description,"source": kg.get("descriptionLink", "None")}
                 snippets.append(element)
             for attribute, value in kg.get("attributes", {}).items():
-                element = {"content":f"{attribute}: {value}","source":"None"}
+                element = {"content":f"{attribute}: {value}","source": kg.get("descriptionLink", "None")}
                 snippets.append(element)
 
         for result in results["organic"][: self.k]:
             if "snippet" in result:
-                element = {"content":result["snippet"],"source":result["link"]}
+                element = {"content":result["snippet"],"source": result["link"]}
                 snippets.append(element)
             for attribute, value in result.get("attributes", {}).items():
-                element = {"content":f"{attribute}: {value}","source":result["link"]}
+                element = {"content":f"{attribute}: {value}","source": result["link"]}
                 snippets.append(element)
 
         if len(snippets) == 0:
