@@ -21,9 +21,9 @@ class Factool():
                             "math": math_pipeline(
                                 foundation_model
                             ),
-                            "scientific": scientific_pipeline(
-                                foundation_model
-                            ),
+                            # "scientific": scientific_pipeline(
+                            #     foundation_model
+                            # ),
                             "med_doc_qa": med_doc_qa_pipeline(
                                 foundation_model
                             )
