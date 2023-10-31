@@ -5,7 +5,7 @@ import time
 import math
 import pdb
 from typing import List, Dict
-
+from app.utils import *
 from factool.knowledge_qa.tool import google_search
 from factool.knowledge_qa.tool import local_search
 from factool.utils.base.pipeline import pipeline
@@ -63,11 +63,15 @@ class knowledge_qa_pipeline(pipeline):
         return await self.chat.async_run(messages_list, dict)
     
     async def run_with_tool_live(self, prompts, responses):
+        claims_start_time, claims_start_date = get_current_date_and_time()
         claims_in_responses = await self._claim_extraction(responses)
+        claims_end_time, claims_end_date = get_current_date_and_time()
+        claims_total_time = get_time_in_ms(claims_start_time, claims_end_time)
         queries_in_responses = []
         evidences_in_responses = []
         sources_in_responses = []
         verifications_in_responses = []
+        verification_start_time, verification_start_date = get_current_date_and_time()
         for claims_in_response in claims_in_responses:
             queries = await self._query_generation(claims_in_response)
             queries_in_responses.append(queries)
@@ -78,8 +82,10 @@ class knowledge_qa_pipeline(pipeline):
             sources_in_responses.append(sources)
             verifications = await self._verification(prompts[0], claims_in_response, evidences)
             verifications_in_responses.append(verifications)
-
-        return claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses
+        verification_end_time, verification_end_date = get_current_date_and_time()
+        verification_total_time = get_time_in_ms(verification_start_time, verification_end_time)
+        
+        return claims_in_responses, claims_start_date, claims_end_date, claims_total_time, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses, verification_start_date, verification_end_date, verification_total_time
     
     async def run_with_tool_live_without_claim_extraction(self, claims):
         queries = await self._query_generation(claims)
@@ -104,7 +110,7 @@ class knowledge_qa_pipeline(pipeline):
             batch_start = i * batch_size
             batch_end = min((i + 1) * batch_size, len(responses))
 
-            claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses = await self.run_with_tool_live(prompts[batch_start:batch_end], responses[batch_start:batch_end])
+            claims_in_responses, claims_start_time, claims_end_time, claims_total_time, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses, verification_start_time, verification_end_time, verification_total_time = await self.run_with_tool_live(prompts[batch_start:batch_end], responses[batch_start:batch_end])
 
             for j, (claims_in_response, queries_in_response, evidences_in_response, sources_in_response, verifications_in_response) in enumerate(zip(claims_in_responses, queries_in_responses, evidences_in_responses, sources_in_responses, verifications_in_responses)):
                 index = batch_start + j
@@ -121,11 +127,17 @@ class knowledge_qa_pipeline(pipeline):
                 for evidence, source in zip(evidences_in_response, sources_in_response):
                     evidences_with_source.append({'evidence': evidence, 'source': source})
                 self.sample_list[index].update({
+                    'claims_start_time': claims_start_time,
+                    'claims_end_time': claims_end_time,
+                    'claims_total_time': claims_total_time,
                     'claims': claims_in_response,
                     'queries': queries_in_response,
                     # 'evidences': evidences_in_response,
                     # 'sources': sources_in_response,
                     'evidences': evidences_with_source,
+                    'verification_start_time': verification_start_time,
+                    'verification_end_time': verification_end_time,
+                    'verification_total_time': verification_total_time,
                     'claim_level_factuality': verifications_in_response,
                     'response_level_factuality': all([verification['factuality'] if verification != None else True for verification in verifications_in_response])
                 })
